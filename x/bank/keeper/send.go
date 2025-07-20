@@ -69,6 +69,9 @@ type BaseSendKeeper struct {
 	authority string
 
 	sendRestriction *sendRestriction
+
+	// abdex: SendHooks
+	hooks types.SendHooks
 }
 
 func NewBaseSendKeeper(
@@ -152,6 +155,17 @@ func (k BaseSendKeeper) InputOutputCoins(ctx context.Context, input types.Input,
 		return err
 	}
 
+	// abdex: Call BeforeSend hook for each output
+	for _, out := range outputs {
+		outAddress, err := k.ak.AddressCodec().StringToBytes(out.Address)
+		if err != nil {
+			return err
+		}
+		if err := k.hooks.BeforeSend(ctx, inAddress, outAddress, out.Coins); err != nil {
+			return err
+		}
+	}
+
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvent(
 		sdk.NewEvent(
@@ -222,6 +236,11 @@ func (k BaseSendKeeper) InputOutputCoins(ctx context.Context, input types.Input,
 func (k BaseSendKeeper) SendCoins(ctx context.Context, fromAddr, toAddr sdk.AccAddress, amt sdk.Coins) error {
 	if !amt.IsValid() {
 		return errorsmod.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
+	}
+
+	// abdex: Call BeforeSend hook
+	if err := k.hooks.BeforeSend(ctx, fromAddr, toAddr, amt); err != nil {
+		return err
 	}
 
 	var err error
@@ -523,4 +542,34 @@ func (r *sendRestriction) apply(ctx context.Context, fromAddr, toAddr sdk.AccAdd
 		return toAddr, nil
 	}
 	return r.fn(ctx, fromAddr, toAddr, amt)
+}
+
+// abdex: SubUnlockedCoins is a wrapper for subUnlockedCoins
+func (k BaseSendKeeper) SubUnlockedCoins(ctx context.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	return k.subUnlockedCoins(ctx, addr, amt)
+}
+
+// abdex: AddCoins is a wrapper for addCoins
+func (k BaseSendKeeper) AddCoins(ctx context.Context, addr sdk.AccAddress, amt sdk.Coins) error {
+	return k.addCoins(ctx, addr, amt)
+}
+
+// abdex: Hooks returns the bank hooks
+func (k BaseSendKeeper) Hooks() types.SendHooks {
+	if k.hooks == nil {
+		return types.MultiSendHooks{}
+	}
+
+	return k.hooks
+}
+
+// abdex: SetHooks sets the bank hooks
+func (k *BaseSendKeeper) SetHooks(hooks types.SendHooks) *BaseSendKeeper {
+	if k.hooks != nil {
+		panic("cannot set bank hooks twice")
+	}
+
+	k.hooks = hooks
+
+	return k
 }

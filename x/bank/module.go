@@ -209,6 +209,8 @@ func init() {
 		&modulev1.Module{},
 		appmodule.Provide(ProvideModule),
 		appmodule.Invoke(InvokeSetSendRestrictions),
+		// abdex: InvokeSetSendHooks
+		appmodule.Invoke(InvokeSetSendHooks),
 	)
 }
 
@@ -301,5 +303,30 @@ func InvokeSetSendRestrictions(
 		keeper.AppendSendRestriction(restriction)
 	}
 
+	return nil
+}
+
+// abdex: InvokeSetSendHooks sets the send hooks
+func InvokeSetSendHooks(
+	keeper *keeper.BaseKeeper,
+	sendHooks map[string]types.SendHooksWrapper,
+) error {
+	if keeper == nil || sendHooks == nil {
+		return nil
+	}
+
+	// Default ordering is lexical by module name.
+	// Explicit ordering can be added to the module config if required.
+	modNames := slices.Sorted(maps.Keys(sendHooks))
+	var multiHooks types.MultiSendHooks
+	for _, modName := range modNames {
+		hook, ok := sendHooks[modName]
+		if !ok {
+			return fmt.Errorf("can't find send hooks for module %s", modName)
+		}
+		multiHooks = append(multiHooks, hook)
+	}
+
+	keeper.SetHooks(multiHooks)
 	return nil
 }
