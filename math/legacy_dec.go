@@ -834,55 +834,55 @@ func (d LegacyDec) MarshalYAML() (interface{}, error) {
 }
 
 // Marshal implements the gogo proto custom type interface.
-func (d LegacyDec) Marshal() ([]byte, error) {
-	i := d.i
-	if i == nil {
-		i = new(big.Int)
-	}
-	return i.MarshalText()
-}
+// func (d LegacyDec) Marshal() ([]byte, error) {
+// 	i := d.i
+// 	if i == nil {
+// 		i = new(big.Int)
+// 	}
+// 	return i.MarshalText()
+// }
 
 // MarshalTo implements the gogo proto custom type interface.
-func (d *LegacyDec) MarshalTo(data []byte) (n int, err error) {
-	i := d.i
-	if i == nil {
-		i = new(big.Int)
-	}
+// func (d *LegacyDec) MarshalTo(data []byte) (n int, err error) {
+// 	i := d.i
+// 	if i == nil {
+// 		i = new(big.Int)
+// 	}
 
-	if i.Sign() == 0 {
-		copy(data, []byte{0x30})
-		return 1, nil
-	}
+// 	if i.Sign() == 0 {
+// 		copy(data, []byte{0x30})
+// 		return 1, nil
+// 	}
 
-	bz, err := d.Marshal()
-	if err != nil {
-		return 0, err
-	}
+// 	bz, err := d.Marshal()
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-	copy(data, bz)
-	return len(bz), nil
-}
+// 	copy(data, bz)
+// 	return len(bz), nil
+// }
 
 // Unmarshal implements the gogo proto custom type interface.
-func (d *LegacyDec) Unmarshal(data []byte) error {
-	if len(data) == 0 {
-		d = nil
-		return nil
-	}
+// func (d *LegacyDec) Unmarshal(data []byte) error {
+// 	if len(data) == 0 {
+// 		d = nil
+// 		return nil
+// 	}
 
-	if d.i == nil {
-		d.i = new(big.Int)
-	}
+// 	if d.i == nil {
+// 		d.i = new(big.Int)
+// 	}
 
-	if err := d.i.UnmarshalText(data); err != nil {
-		return err
-	}
+// 	if err := d.i.UnmarshalText(data); err != nil {
+// 		return err
+// 	}
 
-	if !d.IsInValidRange() {
-		return errors.New("decimal out of range")
-	}
-	return nil
-}
+// 	if !d.IsInValidRange() {
+// 		return errors.New("decimal out of range")
+// 	}
+// 	return nil
+// }
 
 // Size implements the gogo proto custom type interface.
 func (d *LegacyDec) Size() int {
